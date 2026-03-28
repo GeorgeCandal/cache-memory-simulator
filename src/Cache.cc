@@ -9,6 +9,21 @@ Purpose: This contains different methods for simulating a cache.
 */
 
 namespace mem {
+// ---------------------------
+// Tree constructor
+// --------------------------- 
+PLRUTreeNode* buildPLRUTree(uint64_t level, uint64_t max_level, int &leaf_id, Set &set) {
+    if (level == max_level) {
+        PLRUTreeNode* node = new PLRUTreeNode(set.blocks[leaf_id]);
+        leaf_id++;
+        return node;
+    }
+
+    PLRUTreeNode* left = buildPLRUTree(level + 1, max_level, leaf_id, set);
+    PLRUTreeNode* right = buildPLRUTree(level + 1, max_level, leaf_id, set);
+    PLRUTreeNode* node = new PLRUTreeNode(left, right);
+    return node;
+}
 
 // Constructor for tree-based PLRU cache
 // ---------------------------
@@ -58,38 +73,12 @@ Cache::Cache(uint64_t num_sets, uint64_t num_ways, uint64_t block_size,
         }
 
         // ---------------------------
-        // Create the PLRU tree using a bottom up approach
+        // Create the PLRU tree using recursion
         // ---------------------------
         
-        // Vector to temporarily hold the leaf nodes
-        std::vector<PLRUTreeNode*> nodes;
-
-        // Create leaf nodes for all of the blocks and save in temp vector
-        for (uint64_t i = 0; i < num_ways_; i++) {
-            Block* blk = set.blocks[i];
-            PLRUTreeNode* leaf = new PLRUTreeNode(blk);
-            nodes.push_back(leaf);
-        }
-
-        // Build the tree
-        // Create a new vector to save the parent nodes
-        // Loop through the nodes and create a new parent node for each two leaves.
-        // The parents vector becomes the nodes vector and the cycle repeats until one node is left.
-        while (nodes.size() > 1) {
-            std::vector<PLRUTreeNode*> parents;
-
-            for (uint64_t i = 0; i < nodes.size(); i += 2) {
-                PLRUTreeNode* left = nodes[i];
-                PLRUTreeNode* right = nodes[i+1];
-                PLRUTreeNode* parent = new PLRUTreeNode(left, right);
-                parents.push_back(parent);
-            }
-
-            nodes = parents;
-        }
-
-        // Set the final node as the root.
-        set.plru_root = nodes[0];
+        int leaf_id = 0;
+        uint64_t max_level = LogBase2(num_ways_);
+        set.plru_root = buildPLRUTree(0, max_level, leaf_id, set);
     }
 }
 
