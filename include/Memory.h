@@ -6,6 +6,13 @@
 #include <cstdint>
 #include <cassert>
 
+/*
+Name: George Candal
+Date: 3/30/26
+Purpose: Header file that contains the data structures and class definition 
+for the page table simulation.
+*/
+
 namespace mem {
 
     /* Page table entry structure
@@ -45,6 +52,7 @@ namespace mem {
         unsigned long num_hit = 0;
         unsigned long num_miss = 0;
         unsigned long num_evection = 0;
+        unsigned long data_movement = 0;
 
     public:
         Memory(int memorySizeKB, int pageSizeKB);
@@ -60,6 +68,7 @@ namespace mem {
         double getHitRatio() const;
         double getMissRatio() const;
         unsigned long getEvectionCount() const;
+        unsigned long getDataMovement() const;
     };
 
 } // namespace mem
