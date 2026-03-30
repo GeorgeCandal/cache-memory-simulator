@@ -2,6 +2,12 @@
 #include <cassert>
 #include <cmath>
 
+/*
+Name: George Candal
+Date: 3/30/26
+Purpose: This contains different methods for implementing a page table.
+*/
+
 namespace mem {
 
 Memory::Memory(int memorySizeKB, int pageSizeKB)
@@ -13,10 +19,6 @@ Memory::Memory(int memorySizeKB, int pageSizeKB)
     // Initialize Page Table (Virtual Memory)
     uint64_t num_pages_estimate = memorySizeKB / pageSizeKB;
 
-    for (uint64_t page_id = 0; page_id < num_pages_estimate; ++page_id) {
-        pageTable[page_id] = PageTableEntry();
-    }
-
     // Initialize Frame Table (Physical Memory)
     // Smaller than page table (1/10 size)
     uint64_t num_frames = num_pages_estimate / 10;
@@ -24,14 +26,6 @@ Memory::Memory(int memorySizeKB, int pageSizeKB)
     for (uint64_t frame_id = 0; frame_id < num_frames; ++frame_id) {
         frameTable[frame_id] = Frame(frame_id);
     }
-
-    /*
-     * STUDENT NOTE:
-     * - pageTable represents virtual memory (large)
-     * - frameTable represents physical memory (small)
-     * - Frames will be allocated to pages on demand
-     * - When frameTable is empty, LRU replacement must be used
-     */
 }
 
 // Compute log2 of a value (must be power of 2)
@@ -58,39 +52,96 @@ void Memory::DecodeAddress(uint64_t address, uint64_t &page_number, uint64_t &of
     page_number = address >> log_page_size;
 }
 
-// Student skeleton for page walk
+// ---------------------------
+// Walk the page table
+// ---------------------------
 bool Memory::pageWalk(uint64_t address, char access_type)
 {
-    // Students will:
-    // 1. Extract page number and offset
-    // 2. Check pageTable using page_number as key
-    // 3. Handle hit or fault
-    // 4. Allocate frame from frameTable OR call LRU
+    bool hit = false;
+    // Extract page number and offset
+    uint64_t page_number;
+    uint64_t offset;
+    DecodeAddress(address, page_number, offset);
 
-    return false;
+    // If page hit: increase hit counter, move page to back of lru list, update 
+    // flag to true.
+    if (pageTable.count(page_number) && pageTable[page_number].isPresentInMemory) {
+        num_hit++;
+        lruList.remove(page_number);
+        lruList.push_back(page_number);
+        hit = true;        
+
+    // else page miss: increase miss counter
+    // IF lru list size is less than frame table size (this means there is an empty frame).
+    //  add page to next open frame, update isPresent, add page number to end of
+    //  lru list and update data movement for page in
+    // ELSE (all frames are filled): call handleLRUReplacement
+    // Then change isUpdated to true if its a write access
+    // Return true for hit, false for miss  
+    } else {
+        num_miss++;
+        if (lruList.size() < frameTable.size()) {
+            pageTable[page_number].frameNumber = lruList.size();
+            pageTable[page_number].isPresentInMemory = true;
+            lruList.push_back(page_number);
+            data_movement += pageSizeKB * 1024;
+
+        } else {
+            handleLRUReplacement(page_number);
+        }
+    }
+
+     if (access_type == 'W') {
+            pageTable[page_number].isUpdated = true;
+    }
+
+    return hit;
 }
 
-// Student skeleton for LRU replacement
+// ---------------------------
+// LRU replacement
+// ---------------------------
 void Memory::handleLRUReplacement(int incomingPageNumber)
 {
-    // Students will:
-    // 1. Identify LRU page from lruList
-    // 2. If updated → increment num_evection
-    // 3. Reassign its frame to incoming page
-    // 4. Update pageTable and lruList
+    // Least Recently Used Page number
+    int lru = lruList.front();
+
+    // Simulate data movement for write back if written to. Change isUpdated back
+    // to false
+    if (pageTable[lru].isUpdated == true) {
+        data_movement += pageSizeKB * 1024;
+        pageTable[lru].isUpdated = false;    
+    } 
+
+    // Update evicition counter, assign frame number to incoming page, update
+    // frame number of victim page to -1, update both isPresentInMemory bits,
+    // remove victim from lru list and push new page to back of lru list.
+    // Update data movement for page in.
+    num_evection++;
+    pageTable[incomingPageNumber].frameNumber = pageTable[lru].frameNumber;
+    pageTable[lru].frameNumber = -1;
+    pageTable[lru].isPresentInMemory = false;
+    pageTable[incomingPageNumber].isPresentInMemory = true;
+    lruList.remove(lru);
+    lruList.push_back(incomingPageNumber);
+    data_movement += pageSizeKB * 1024;
 }
 
 // Stats accessors
 double Memory::getHitRatio() const {
-    return static_cast<double>(num_hit) / (num_hit + num_miss);
+    return static_cast<double>(num_hit) / (num_hit + num_miss) * 100;
 }
 
 double Memory::getMissRatio() const {
-    return static_cast<double>(num_miss) / (num_hit + num_miss);
+    return static_cast<double>(num_miss) / (num_hit + num_miss) * 100;
 }
 
 unsigned long Memory::getEvectionCount() const {
     return num_evection;
+}
+
+unsigned long Memory::getDataMovement() const {
+    return data_movement;
 }
 
 } // namespace mem
