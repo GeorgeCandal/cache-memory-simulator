@@ -2,12 +2,14 @@ CXX = g++
 CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -Iinclude
 
 TARGET = cache_test
-SRC = src/Cache.cc src/Main.cc
+SRC = src/Cache.cc src/Main.cc src/Memory.cc
 
 # Default cache configuration
 NUM_SETS ?= 16
 NUM_WAYS ?= 4
 BLOCK_SIZE ?= 64
+MEMORY_SIZE ?= 1024
+PAGE_SIZE ?= 4
 
 all: $(TARGET)
 
@@ -16,8 +18,8 @@ $(TARGET): $(SRC) include/Cache.h
 
 # Pass cache configuration as command-line arguments
 run: $(TARGET)
-	@echo "Running cache simulator with NUM_SETS=$(NUM_SETS), NUM_WAYS=$(NUM_WAYS), BLOCK_SIZE=$(BLOCK_SIZE)"
-	./$(TARGET) $(NUM_SETS) $(NUM_WAYS) $(BLOCK_SIZE)
+	@echo "Running cache simulator with NUM_SETS=$(NUM_SETS), NUM_WAYS=$(NUM_WAYS), BLOCK_SIZE=$(BLOCK_SIZE), MEMORY_SIZE=$(MEMORY_SIZE), PAGE_SIZE=$(PAGE_SIZE)"
+	./$(TARGET) $(NUM_SETS) $(NUM_WAYS) $(BLOCK_SIZE) $(MEMORY_SIZE) $(PAGE_SIZE)
 
 clean:
 	rm -f $(TARGET)
