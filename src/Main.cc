@@ -1,4 +1,5 @@
 #include "../include/Cache.h"
+#include "../include/Memory.h"
 #include <iostream>
 #include <vector>
 #include <fstream>
@@ -7,6 +8,7 @@
 /*
 Name: George Candal
 Date: 3/4/26
+Updated: 3/30/26 - Added page table simulation for Stage 2
 Purpose: This simulates a cache. It opens a trace file of memory accesses. Decodes
 the address and simulates the data movement in the cache. It then records certain metrics 
 and prints them out. (hit rate, miss rate, eviction rate, data movement, and 
@@ -15,16 +17,19 @@ cache utilization)
 
 int main(int argc, char* argv[]) {
 
-	if (argc < 4) {
-        std::cerr << "Usage: " << argv[0] << " <num_sets> <num_ways> <block_size>\n";
+	if (argc < 6) {
+        std::cerr << "Usage: " << argv[0] << " <num_sets> <num_ways> <block_size> <memory_size> <page_size>\n";
         return 1;
     }
 
     uint64_t num_sets = std::stoull(argv[1]);
     uint64_t num_ways = std::stoull(argv[2]);
     uint64_t block_size = std::stoull(argv[3]);
+    uint64_t memory_size = std::stoull(argv[4]);
+    uint64_t page_size = std::stoull(argv[5]);
 
     mem::Cache cache(num_sets, num_ways, block_size);
+    mem::Memory memory(memory_size, page_size);
 
 
     // Open trace file
@@ -69,16 +74,17 @@ int main(int argc, char* argv[]) {
             if (access_type == 'W') {
                 cache.setBlock(set_id, way_id, tag, mem::BlockState::Modified);
             } 
-        // Else, its a cache miss. Update miss_counter, Find the block to be 
-        // replaced and get the victim's block state. If the block is not invalid,
-        // update eviction counter. If block has been modified increase data size
-        // by the block size (to write the old block back)
+        // Else, its a cache miss. Update miss_counter, walk the page table, 
+        // Find the block to be replaced and get the victim's block state. If 
+        // the block is not invalid, update eviction counter. If block has been 
+        // modified increase data size by the block size (to write the old block back)
         // Set the block state accordingly depending on if write or read.
         // Call accessBlock to update LRU bits.
         // Update data size by block size(to write block into cache) plus 8 (to
         // move data from cache to cpu)
         } else {
             miss_counter += 1;
+            memory.pageWalk(addr, access_type);
             uint64_t victim_way_id = cache.ReplaceBlock(set_id);
             cache.getBlock(set_id, victim_way_id, victim_tag, state);
 
@@ -128,14 +134,20 @@ int main(int argc, char* argv[]) {
     
 
     // Print out results
+    std::cout<<"\n--Cache Stats--"<<std::endl;
     std::cout<<"Cache Hit Rate: "<<hit_rate<<std::endl;
     std::cout<<"Cache Miss Rate: "<<miss_rate<<std::endl;
     std::cout<<"Eviction Rate: "<<eviction_rate<<std::endl;
     std::cout<<"Data Movement: "<<data_size<<" bytes"<<std::endl;
     std::cout<<"Cache Utilization: "<<cache_utilization<<std::endl;
 
+    std::cout<<"\n--Page Table Stats--"<<std::endl;
+    std::cout<<"Hit Rate: "<<memory.getHitRatio()<<std::endl;
+    std::cout<<"Miss Rate: "<<memory.getMissRatio()<<std::endl;
+    std::cout<<"Evictions: "<<memory.getEvectionCount()<<std::endl;
+    std::cout<<"Data Movement: "<<memory.getDataMovement()<<" bytes"<<std::endl;
+
     traceFile.close();
 
     return 0;
 }
-
