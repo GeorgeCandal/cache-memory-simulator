@@ -22,5 +22,5 @@ run: $(TARGET)
 	./$(TARGET) $(NUM_SETS) $(NUM_WAYS) $(BLOCK_SIZE) $(MEMORY_SIZE) $(PAGE_SIZE)
 
 clean:
-	rm -f $(TARGET)
+	-del /f cache_test.exe 2>nul || rm -f $(TARGET)
 
