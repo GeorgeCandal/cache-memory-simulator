@@ -1,6 +1,7 @@
 #include "../include/Memory.h"
 #include <cassert>
 #include <cmath>
+#include <iostream>
 
 /*
 Name: George Candal
@@ -101,23 +102,23 @@ bool Memory::pageWalk(uint64_t address, char access_type)
 // ---------------------------
 // LRU replacement
 // ---------------------------
-void Memory::handleLRUReplacement(int incomingPageNumber)
+void Memory::handleLRUReplacement(uint64_t incomingPageNumber)
 {
     // Least Recently Used Page number
-    int lru = lruList.front();
-
+    uint64_t lru = lruList.front();
+    std::cout << "Evicting page " << lru << " isUpdated: " << pageTable[lru].isUpdated << std::endl;
     // Simulate data movement for write back if written to. Change isUpdated back
-    // to false
+    // to false. Update eviction counter
     if (pageTable[lru].isUpdated == true) {
         data_movement += pageSizeKB * 1024;
-        pageTable[lru].isUpdated = false;    
+        pageTable[lru].isUpdated = false;
+        num_evection++;    
     } 
 
-    // Update evicition counter, assign frame number to incoming page, update
+    // Assign frame number to incoming page, update
     // frame number of victim page to -1, update both isPresentInMemory bits,
     // remove victim from lru list and push new page to back of lru list.
     // Update data movement for page in.
-    num_evection++;
     pageTable[incomingPageNumber].frameNumber = pageTable[lru].frameNumber;
     pageTable[lru].frameNumber = -1;
     pageTable[lru].isPresentInMemory = false;

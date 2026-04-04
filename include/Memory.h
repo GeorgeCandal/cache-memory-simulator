@@ -46,7 +46,7 @@ namespace mem {
         std::unordered_map<uint64_t, Frame> frameTable;
 
         // LRU tracking
-        std::list<int> lruList;
+        std::list<uint64_t> lruList;
 
         // Stats
         unsigned long num_hit = 0;
@@ -59,7 +59,7 @@ namespace mem {
 
         bool pageWalk(uint64_t address, char access_type);
 
-        void handleLRUReplacement(int incomingPageNumber);
+        void handleLRUReplacement(uint64_t incomingPageNumber);
 
         void DecodeAddress(uint64_t address, uint64_t &page_number, uint64_t &offset) const;
 
