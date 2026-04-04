@@ -1,7 +1,6 @@
 #include "../include/Memory.h"
 #include <cassert>
 #include <cmath>
-#include <iostream>
 
 /*
 Name: George Candal
@@ -106,9 +105,8 @@ void Memory::handleLRUReplacement(uint64_t incomingPageNumber)
 {
     // Least Recently Used Page number
     uint64_t lru = lruList.front();
-    std::cout << "Evicting page " << lru << " isUpdated: " << pageTable[lru].isUpdated << std::endl;
     // Simulate data movement for write back if written to. Change isUpdated back
-    // to false. Update eviction counter
+    // to false. Update eviction counter. Evictions are only updated during writeback.
     if (pageTable[lru].isUpdated == true) {
         data_movement += pageSizeKB * 1024;
         pageTable[lru].isUpdated = false;
